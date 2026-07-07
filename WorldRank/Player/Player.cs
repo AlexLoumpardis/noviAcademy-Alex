@@ -1,17 +1,19 @@
-namespace WorldRank;
+namespace WorldRank.Console;
 
-public class Player
+public class Player : IPlayer
 {
-	public Guid Id { get; }
+	public int Id { get; }
 	public string Name { get; }
 	public int Score { get; private set; }
 
-	public Player(string name)
+    public Dictionary<Currency, Wallet> Wallets { get; set; } = new Dictionary<Currency, Wallet>();
+
+    public Player(int id, string name)
 	{
 		if (string.IsNullOrEmpty(name))
 			throw new ArgumentException("Name cannot be null or empty.", nameof(name));
 
-		Id = Guid.NewGuid();
+		Id = id;
 		Name = name;
 	}
 
@@ -23,6 +25,5 @@ public class Player
 		Score = newScore;
 	}
 
-	public override string ToString() =>
-			$"[{Id}] {Name} - Score: {Score}";
+    public override string ToString() => $"[{Id}] {Name} - Score: {Score}";
 }
