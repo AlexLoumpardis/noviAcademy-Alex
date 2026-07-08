@@ -28,6 +28,15 @@ public class Wallet
         Balance = balance;
     }
 
+    public void Withdraw(decimal amount)
+    {
+        if(amount > Balance)
+        {
+            throw new InsufficientFundsException("Not enough funds");
+        }
+
+        Balance -= amount;
+    }
     public override string ToString()
     {
         return "Balance -> " + Balance + " Currency ->" + Currency + " IsBlocked -> " + IsBlocked;

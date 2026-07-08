@@ -1,7 +1,11 @@
+using NLog;
 using WorldRank.Console;
 using WorldRank.Repositories;
 
-var players = new List<Player>();
+var logger = LogManager.GetCurrentClassLogger();
+
+
+var players = new List<IPlayer>();
 var nextId = 1;
 
 IWalletRepository walletRepository = new InMemoryWalletRepository(players);
@@ -15,6 +19,7 @@ while (true)
 	Console.WriteLine("3. Find player by name");
     Console.WriteLine("4. Add Wallet to player");
     Console.WriteLine("5. Get Player Wallets");
+    Console.WriteLine("6. Withdraw from wallet");
     Console.WriteLine("0. Exit");
 	Console.Write("> ");
 
@@ -25,6 +30,7 @@ while (true)
 		"3" => FindPlayer,
         "4" => AddWalletToPlayer,
         "5" => GetWalletOfPlayer,
+        "6" => WithdrawFunds,
         "0" => null,
 		_ => () => Console.WriteLine("Unknown option.")
 	};
@@ -42,7 +48,8 @@ void AddPlayer()
 	if (string.IsNullOrWhiteSpace(name))
 	{
 		Console.WriteLine("Name cannot be empty.");
-		return;
+        logger.Warn($"Add player failed: invalid input");
+        return;
 	}
 
 	Console.Write("Score: ");
@@ -50,16 +57,17 @@ void AddPlayer()
 	if (!int.TryParse(scoreInput, out var score))
 	{
 		Console.WriteLine("Score must be a whole number.");
-		return;
+        logger.Warn($"Add player failed: invalid input");
+        return;
 	}
 
-    var id = players.Count + 1;
 
-    var player = new Player(id, name);
+    var player = new Player(nextId++, name);
 	player.UpdateScore(score);
 
 	players.Add(player);
 	Console.WriteLine("Player added successfully.");
+    logger.Info($"Player added: {name} (id {player.Id})");
 }
 
 void ListPlayers()
@@ -143,6 +151,7 @@ void AddWalletToPlayer()
     {
         walletRepository.AddWallet(new Wallet(cur, 10, false), playerId);
     }
+    logger.Info($"Wallet {cur} added to player {playerId}");
 }
 
 void GetWalletOfPlayer()
@@ -162,5 +171,42 @@ void GetWalletOfPlayer()
 	else
 	{
 		Console.Write("Id not a number");
+	}
+}
+
+void WithdrawFunds()
+{
+    if (!int.TryParse(Console.ReadLine(), out var playerId))
+    {
+        Console.WriteLine("Invalid id.");
+        return;
+    }
+    Console.Write("Amount: ");
+    if (!decimal.TryParse(Console.ReadLine(), out var amount))
+    {
+        Console.WriteLine("Invalid amount.");
+        return;
+    }
+
+    var wallets = walletRepository.GetByPlayer(playerId);
+
+	var wallet = wallets.FirstOrDefault();
+
+	if ( wallet is null)
+	{
+		Console.WriteLine("No wallet found");
+		return;
+	}
+
+	try
+	{
+		wallet.Withdraw(amount);
+		Console.WriteLine("Withdraw successful.");
+        logger.Info($"Withdrew {amount} from player {playerId}");
+    }
+	catch(InsufficientFundsException ex)
+	{
+        logger.Error(ex, "Withdrawal failed for player {id}");
+        Console.WriteLine(ex.Message);
 	}
 }
