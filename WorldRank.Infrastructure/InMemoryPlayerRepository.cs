@@ -1,6 +1,8 @@
 using NLog;
+using WorldRank.Application;
+using WorldRank.Domain;
 
-namespace WorldRank.Console
+namespace WorldRank.Infrastructure
 {
 	public class InMemoryPlayerRepository : IPlayerRepository
 	{

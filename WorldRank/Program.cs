@@ -1,7 +1,7 @@
 using NLog;
-using WorldRank.Console;
-using WorldRank.Console.Enums;
-using WorldRank.Console.Exceptions;
+using WorldRank.Application;
+using WorldRank.Domain;
+using WorldRank.Infrastructure;
 
 var logger = LogManager.GetCurrentClassLogger();
 
