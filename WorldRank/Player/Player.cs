@@ -1,29 +1,29 @@
+using WorldRank.Console.Enums;
+
 namespace WorldRank.Console;
 
 public class Player : IPlayer
 {
 	public int Id { get; }
-	public string Name { get; }
+	public string Name { get; private set; }
 	public int Score { get; private set; }
-
-    public Dictionary<Currency, Wallet> Wallets { get; set; } = new Dictionary<Currency, Wallet>();
-
-    public Player(int id, string name)
+	public Player(int id, string name)
 	{
-		if (string.IsNullOrEmpty(name))
-			throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+		if (string.IsNullOrWhiteSpace(name))
+			throw new ArgumentException("Name cannot be empty.", nameof(name));
 
 		Id = id;
 		Name = name;
+		Score = 0;
 	}
 
-	public void UpdateScore(int newScore)
+	public void AddScore(int points)
 	{
-		if (newScore < 0)
-			throw new ArgumentOutOfRangeException(nameof(newScore), "Score cannot be negative.");
+		if (points < 0)
+			throw new ArgumentOutOfRangeException(nameof(points), "Points cannot be negative.");
 
-		Score = newScore;
+		Score += points;
 	}
 
-    public override string ToString() => $"[{Id}] {Name} - Score: {Score}";
+	public override string ToString() => $"[{Id}] {Name} - Score: {Score}";
 }
