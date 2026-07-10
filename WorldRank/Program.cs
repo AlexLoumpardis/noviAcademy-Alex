@@ -251,7 +251,7 @@ void AddWalletToPlayer()
 		if (playerRepository.FindPlayer(playerId.Value) is null)
 			throw new PlayerNotFoundException(playerId.Value);
 
-		var wallet = new Wallet(playerId.Value, currency.Value, balance.Value);
+		var wallet = new Wallet(Random.Shared.Next(1, int.MaxValue), playerId.Value, currency.Value, balance.Value);
 		walletRepository.Add(wallet);
 		Console.WriteLine("Wallet added successfully.");
 	}
