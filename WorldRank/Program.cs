@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using WorldRank.Application;
 using WorldRank.Domain;
@@ -5,10 +7,21 @@ using WorldRank.Infrastructure;
 
 var logger = LogManager.GetCurrentClassLogger();
 
-//Wallets are stored in their own repository and reference the player via PlayerId
-IWalletRepository walletRepository = new InMemoryWalletRepository();
-IPlayerRepository playerRepository = new InMemoryPlayerRepository();
+var config = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: false)
+    .Build();
 
+var connectionString = config.GetConnectionString("WorldRank")
+    ?? throw new InvalidOperationException("Connection string not found.");
+var useDatabase = config.GetValue<bool>("UseDatabase");
+var services = new ServiceCollection();
+services.AddInfrastructure(connectionString, useDatabase);
+var provider = services.BuildServiceProvider();
+var scope = provider.CreateScope();
+
+var playerRepository = scope.ServiceProvider.GetRequiredService<IPlayerRepository>();
+var walletRepository = scope.ServiceProvider.GetRequiredService<IWalletRepository>();
 logger.Info("Application started.");
 
 while (true)
