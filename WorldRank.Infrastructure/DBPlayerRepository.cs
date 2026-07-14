@@ -1,13 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WorldRank.Application;
 using WorldRank.Domain;
-using NLog;
 
 namespace WorldRank.Infrastructure
 {
     public class DBPlayerRepository : IPlayerRepository
     {
-        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private WorldRankDbContext _context;
 
         public DBPlayerRepository(WorldRankDbContext context)
@@ -26,10 +24,7 @@ namespace WorldRank.Infrastructure
             var player = _context.Players.Where(item => item.Id == playerId).FirstOrDefault();
 
             if (player is null)
-            {
-                _logger.Warn("Delete skipped: player {PlayerId} not found", playerId);
                 return;
-            }
 
             _context.Players.Remove(player);
             _context.SaveChanges();
@@ -37,19 +32,19 @@ namespace WorldRank.Infrastructure
 
         public Player? FindPlayer(int playerId)
         {
-            return _context.Players.FirstOrDefault(p => p.Id == playerId);
+            return _context.Players.AsNoTracking().FirstOrDefault(p => p.Id == playerId);
         }
 
         public IEnumerable<Player> GetAllPlayers()
         {
-
-           return _context.Players.ToList();
+            return _context.Players.AsNoTracking().ToList();
         }
 
         public IEnumerable<IGrouping<int, Player>> GroupPlayersByScore()
         {
             return _context.Players
-            .AsEnumerable()                     
+            .AsNoTracking()
+            .AsEnumerable()
             .GroupBy(p => p.Score)
             .OrderByDescending(g => g.Key);
         }
