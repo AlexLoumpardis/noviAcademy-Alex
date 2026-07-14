@@ -1,7 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using WorldRank.Application;
 using WorldRank.Domain;
 
@@ -9,66 +6,29 @@ namespace WorldRank.Infrastructure
 {
     public class DBWalletRepository : IWalletRepository
     {
-        private WorldRankDbContext _context;
+        private readonly WorldRankDbContext _db;
 
-        public DBWalletRepository(WorldRankDbContext context)
-        {
-            _context = context;
-        }
-        public void Add(Wallet wallet)
-        {
-            var exists = _context.Wallets.Any(w => w.PlayerId == wallet.PlayerId && w.Currency == wallet.Currency);
-            if (exists)
-                throw new DuplicateWalletException(wallet.PlayerId, wallet.Currency);
+	public DBWalletRepository(WorldRankDbContext db) => _db = db;
 
-            _context.Wallets.Add(wallet);
-            _context.SaveChanges();
+	public async Task Add(Wallet wallet, CancellationToken cancellationToken = default)
+	{
+            await _db.Wallets.AddAsync(wallet, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
-        public void Block(int playerId, Currency currency)
-        {
-            GetWallet(playerId, currency).Block();
-            _context.SaveChanges();
-        }
 
-        public void Deposit(int playerId, Currency currency, decimal amount)
-        {
-            var wallet = GetWallet(playerId, currency);
-            wallet.Deposit(amount);        
-            _context.SaveChanges();
-        }
+        public Task<Wallet?> GetById(int Id, CancellationToken cancellationToken = default) =>
+        _db.Wallets.FirstOrDefaultAsync(w => w.Id == Id, cancellationToken);
 
-        public List<Wallet> GetAllWalletsByPlayerId(int playerId)
-        {
-            return _context.Wallets.AsNoTracking().Where(w => w.PlayerId == playerId).ToList();
-        }
+        public async Task<IEnumerable<Wallet>> GetByPlayerId(int playerId, CancellationToken cancellationToken = default) =>
+            await _db.Wallets.Where(w => w.PlayerId == playerId).ToListAsync(cancellationToken);
 
-        private Wallet GetWallet(int playerId, Currency currency)
-        {
-            var wallet = _context.Wallets.SingleOrDefault(w => w.PlayerId == playerId && w.Currency == currency);
-            if (wallet is null)
-                throw new WalletNotFoundException(playerId, currency);
-            return wallet;
+        // Read-only leaderboard query — no tracking needed.
+        public async Task<IReadOnlyList<Wallet>> GetAll(CancellationToken cancellationToken = default) =>
+            await _db.Wallets.AsNoTracking().ToListAsync(cancellationToken);
 
-        }
+        public Task SaveChanges(CancellationToken cancellationToken = default) =>
+            _db.SaveChangesAsync(cancellationToken);
 
-        public void Unblock(int playerId, Currency currency)
-        {
-            GetWallet(playerId, currency).Unblock();
-            _context.SaveChanges();
-        }
-
-        public void UpdateBalance(int playerId, Currency currency, decimal newBalance)
-        {
-            GetWallet(playerId, currency).SetBalance(newBalance);
-            _context.SaveChanges();
-        }
-
-        public void Withdraw(int playerId, Currency currency, decimal amount)
-        {
-            var wallet = GetWallet(playerId, currency);
-            wallet.Withdraw(amount);
-            _context.SaveChanges();
-        }
     }
 }

@@ -1,4 +1,3 @@
-using NLog;
 using WorldRank.Application;
 using WorldRank.Domain;
 
@@ -6,51 +5,30 @@ namespace WorldRank.Infrastructure
 {
 	public class InMemoryPlayerRepository : IPlayerRepository
 	{
-		private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+		private readonly List<Player> _players = new();
 
-		private List<Player> _players;
-
-		public InMemoryPlayerRepository()
-		{
-			_players = new List<Player>();
-		}
-
-		public void AddPlayer(Player player)
+		public Task AddPlayer(Player player, CancellationToken ct)
 		{
 			_players.Add(player);
-			_logger.Info("Player {PlayerId} ({Name}) added with score {Score}", player.Id, player.Name, player.Score);
+			return Task.CompletedTask;
 		}
 
-		public IEnumerable<Player> GetAllPlayers()
+		public Task<Player?> GetById(int id, CancellationToken ct)
+		{
+			var player = _players.FirstOrDefault(p => p.Id == id);
+			return Task.FromResult(player);
+		}
+
+		public Task<IEnumerable<Player>> GetAll(CancellationToken ct)
 		{
 			// Return a copy so callers cannot mutate the repository's internal list.
-			return _players.ToList();
+			return Task.FromResult<IEnumerable<Player>>(_players.ToList());
 		}
 
-		public void DeletePlayer(int playerId)
+		public Task SaveChanges(CancellationToken ct)
 		{
-			var player = _players.Where(item => item.Id == playerId).FirstOrDefault();
-
-			if (player is null)
-			{
-				_logger.Warn("Delete skipped: player {PlayerId} not found", playerId);
-				return;
-			}
-
-			_players.Remove(player);
-			_logger.Info("Player {PlayerId} deleted", playerId);
-		}
-
-		public Player? FindPlayer(int playerId)
-		{
-			return _players.Where(item => item.Id == playerId).FirstOrDefault();
-		}
-
-		public IEnumerable<IGrouping<int, Player>> GroupPlayersByScore()
-		{
-			return _players
-				.GroupBy(player => player.Score)
-				.OrderByDescending(group => group.Key);
+			// No-op: mutating a player fetched from _players already mutates it in place.
+			return Task.CompletedTask;
 		}
 	}
 }
