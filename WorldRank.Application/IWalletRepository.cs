@@ -4,18 +4,13 @@ namespace WorldRank.Application
 {
 	public interface IWalletRepository
 	{
-		void Add(Wallet wallet);
+		Task Add(Wallet wallet, CancellationToken ct);
 
-		List<Wallet> GetAllWalletsByPlayerId(int playerId);
+		Task<Wallet?> GetById(int id, CancellationToken ct);
 
-		void UpdateBalance(int playerId, Currency currency, decimal newBalance);
+		Task<IEnumerable<Wallet>> GetByPlayerId(int playerId, CancellationToken ct);
 
-		void Deposit(int playerId, Currency currency, decimal amount);
-
-		void Withdraw(int playerId, Currency currency, decimal amount);
-
-		void Block(int playerId, Currency currency);
-
-		void Unblock(int playerId, Currency currency);
+		Task SaveChanges(CancellationToken ct);
 	}
 }
+
