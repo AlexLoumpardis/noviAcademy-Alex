@@ -1,14 +1,27 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using WorldRank.Console;
-using WorldRank.Console.Enums;
-using WorldRank.Console.Exceptions;
+using WorldRank.Application;
+using WorldRank.Domain;
+using WorldRank.Infrastructure;
 
 var logger = LogManager.GetCurrentClassLogger();
 
-//Wallets are stored in their own repository and reference the player via PlayerId
-IWalletRepository walletRepository = new InMemoryWalletRepository();
-IPlayerRepository playerRepository = new InMemoryPlayerRepository();
+var config = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: false)
+    .Build();
 
+var connectionString = config.GetConnectionString("WorldRank")
+    ?? throw new InvalidOperationException("Connection string not found.");
+var useDatabase = config.GetValue<bool>("UseDatabase");
+var services = new ServiceCollection();
+services.AddInfrastructure(connectionString, useDatabase);
+var provider = services.BuildServiceProvider();
+var scope = provider.CreateScope();
+
+var playerRepository = scope.ServiceProvider.GetRequiredService<IPlayerRepository>();
+var walletRepository = scope.ServiceProvider.GetRequiredService<IWalletRepository>();
 logger.Info("Application started.");
 
 while (true)
@@ -161,6 +174,7 @@ void AddPlayer()
 	var player = new Player(GeneratePlayerId(), name);
 	player.AddScore(score);
 	playerRepository.AddPlayer(player);
+	logger.Info("Player {PlayerId} ({Name}) added with score {Score}", player.Id, player.Name, player.Score);
 	Console.WriteLine("Player added successfully.");
 }
 
@@ -225,6 +239,7 @@ void DeletePlayer()
 		return;
 
 	playerRepository.DeletePlayer(playerId.Value);
+	logger.Info("Player {PlayerId} delete requested", playerId);
 	Console.WriteLine("Player deleted (if it existed).");
 }
 
@@ -251,8 +266,9 @@ void AddWalletToPlayer()
 		if (playerRepository.FindPlayer(playerId.Value) is null)
 			throw new PlayerNotFoundException(playerId.Value);
 
-		var wallet = new Wallet(playerId.Value, currency.Value, balance.Value);
+		var wallet = new Wallet(Random.Shared.Next(1, int.MaxValue), playerId.Value, currency.Value, balance.Value);
 		walletRepository.Add(wallet);
+		logger.Info("Wallet created for player {PlayerId} in {Currency} with balance {Balance}", playerId, currency, balance);
 		Console.WriteLine("Wallet added successfully.");
 	}
 	catch (PlayerNotFoundException ex)
@@ -302,6 +318,7 @@ void DepositToWallet()
 	RunWalletOperation(() =>
 	{
 		walletRepository.Deposit(playerId.Value, currency.Value, amount.Value);
+		logger.Info("Deposited {Amount} to player {PlayerId} {Currency} wallet", amount, playerId, currency);
 		Console.WriteLine("Deposit successful.");
 	});
 }
@@ -323,6 +340,7 @@ void WithdrawFromWallet()
 	RunWalletOperation(() =>
 	{
 		walletRepository.Withdraw(playerId.Value, currency.Value, amount.Value);
+		logger.Info("Withdrew {Amount} from player {PlayerId} {Currency} wallet", amount, playerId, currency);
 		Console.WriteLine("Withdrawal successful.");
 	});
 }
@@ -340,6 +358,7 @@ void BlockWallet()
 	RunWalletOperation(() =>
 	{
 		walletRepository.Block(playerId.Value, currency.Value);
+		logger.Info("Player {PlayerId} {Currency} wallet blocked", playerId, currency);
 		Console.WriteLine("Wallet blocked.");
 	});
 }
@@ -357,6 +376,7 @@ void UnblockWallet()
 	RunWalletOperation(() =>
 	{
 		walletRepository.Unblock(playerId.Value, currency.Value);
+		logger.Info("Player {PlayerId} {Currency} wallet unblocked", playerId, currency);
 		Console.WriteLine("Wallet unblocked.");
 	});
 }
@@ -378,6 +398,7 @@ void UpdateWalletBalance()
 	RunWalletOperation(() =>
 	{
 		walletRepository.UpdateBalance(playerId.Value, currency.Value, newBalance.Value);
+		logger.Info("Player {PlayerId} {Currency} wallet balance set to {Balance}", playerId, currency, newBalance);
 		Console.WriteLine("Balance updated.");
 	});
 }

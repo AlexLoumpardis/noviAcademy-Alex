@@ -1,18 +1,17 @@
-using WorldRank.Console.Enums;
-using WorldRank.Console.Exceptions;
-
-namespace WorldRank.Console
+namespace WorldRank.Domain
 {
 	public class Wallet : IWallet
 	{
 		public Currency Currency { get; }
-		public int PlayerId { get; }
+        public int Id { get; }
+        public int PlayerId { get; }
 		public decimal Balance { get; private set; }
 		public bool IsBlocked { get; private set; }
 
-		public Wallet(int playerId, Currency currency, decimal balance, bool isBlocked = false)
+		public Wallet(int id, int playerId, Currency currency, decimal balance, bool isBlocked = false)
 		{
-			PlayerId = playerId;
+            Id = id;
+            PlayerId = playerId;
 			if (balance < 0)
 				throw new InsufficientFundsException(balance);
 
